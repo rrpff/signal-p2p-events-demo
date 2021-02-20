@@ -1,6 +1,7 @@
 import { ISignal, ISignalProtocolStore } from './interfaces'
 import InMemorySignalProtocolStore from './modules/InMemorySignalProtocolStore'
 import { bufferToString, bufferToArrayBuffer, buffersAreEqual } from './helpers/buffers'
+import { generateIdentity, generatePreKeyBundle } from './helpers/signal'
 
 declare var libsignal: ISignal
 
@@ -64,37 +65,3 @@ declare var libsignal: ISignal
   const plaintext4 = await aliceSessionCipher.decryptWhisperMessage(ciphertext4.body, 'binary')
   console.log(`> Bob to Alice: "${bufferToString(plaintext4)}"`)
 })()
-
-async function generateIdentity(store: ISignalProtocolStore) {
-  const identityKey = await libsignal.KeyHelper.generateIdentityKeyPair()
-  const registrationId = await libsignal.KeyHelper.generateRegistrationId()
-
-  store.put('identityKey', identityKey)
-  store.put('registrationId', registrationId)
-
-  return registrationId.toString()
-}
-
-async function generatePreKeyBundle(store: ISignalProtocolStore, preKeyId: number, signedPreKeyId: number) {
-  const identity = await store.getIdentityKeyPair()
-  const registrationId = await store.getLocalRegistrationId()
-  const preKey = await libsignal.KeyHelper.generatePreKey(preKeyId)
-  const signedPreKey = await libsignal.KeyHelper.generateSignedPreKey(identity, signedPreKeyId)
-
-  store.storePreKey(preKeyId, preKey.keyPair)
-  store.storeSignedPreKey(signedPreKeyId, signedPreKey.keyPair)
-
-  return {
-    identityKey: identity.pubKey,
-    registrationId: registrationId,
-    preKey: {
-      keyId: preKeyId,
-      publicKey: preKey.keyPair.pubKey
-    },
-    signedPreKey: {
-      keyId: signedPreKeyId,
-      publicKey: signedPreKey.keyPair.pubKey,
-      signature: signedPreKey.signature
-    }
-  }
-}
