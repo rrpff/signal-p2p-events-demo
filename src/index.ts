@@ -70,23 +70,6 @@ const runExample = async () => {
   console.log(`> Bob to Alice: "${bufferToString(plaintext4)}"`)
 }
 
-// ;(async () => {
-//   const store = new InMemorySignalProtocolStore()
-
-//   document.body.innerHTML = ''
-
-//   ;[
-//     { text: 'Install', handler: () => install(store).then(() => console.info('Installed')) },
-//     { text: 'Run Console Example', handler: () => runExample() },
-//   ].forEach(button => {
-//     const buttonEl = document.createElement('button')
-//     buttonEl.innerText = button.text
-//     buttonEl.onclick = button.handler
-//     buttonEl.style.display = 'block'
-//     document.body.appendChild(buttonEl)
-//   })
-// })()
-
 class SignalController {
   constructor(private store: ISignalProtocolStore) {}
 
