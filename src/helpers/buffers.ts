@@ -1,8 +1,7 @@
 // Adapted from: https://github.com/signalapp/libsignal-protocol-javascript/blob/master/src/helpers.js
 
 import ByteBuffer from 'bytebuffer'
-
-export type ByteBufferCompatible = string | ByteBuffer | Buffer | ArrayBuffer | Uint8Array
+import { ByteBufferCompatible } from '../interfaces'
 
 export const isArrayBuffer = (thing: any) => {
   return thing.__proto__ === (new ArrayBuffer(0) as any).__proto__

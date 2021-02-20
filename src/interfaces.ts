@@ -1,4 +1,4 @@
-import { ByteBufferCompatible } from './helpers/buffers'
+export type ByteBufferCompatible = string | ByteBuffer | Buffer | ArrayBuffer | Uint8Array
 
 export type IPublicKey = ArrayBuffer
 export type IPrivateKey = ArrayBuffer
@@ -29,7 +29,7 @@ export enum ISignalCiphertextType {
 
 export interface ISignalCiphertext {
   type: ISignalCiphertextType
-  body: ArrayBuffer
+  body: ByteBufferCompatible
   registrationId: number
 }
 
@@ -51,9 +51,9 @@ export interface ISignalSessionBuilder {
 
 export interface ISignalSessionCipher {
   new (store: ISignalProtocolStore, address: ISignalProtocolAddress): ISignalSessionCipher
-  encrypt(arrayBuffer: ArrayBuffer): Promise<ISignalCiphertext>
-  decryptPreKeyWhisperMessage(body: ArrayBuffer, encoding: 'binary'): Promise<ByteBufferCompatible>
-  decryptWhisperMessage(body: ArrayBuffer, encoding: 'binary'): Promise<ByteBufferCompatible>
+  encrypt(buffer: ByteBufferCompatible): Promise<ISignalCiphertext>
+  decryptPreKeyWhisperMessage(buffer: ByteBufferCompatible, encoding: 'binary'): Promise<ByteBufferCompatible>
+  decryptWhisperMessage(buffer: ByteBufferCompatible, encoding: 'binary'): Promise<ByteBufferCompatible>
 }
 
 export interface ISignalKeyHelper {

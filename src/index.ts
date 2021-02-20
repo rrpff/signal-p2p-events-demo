@@ -8,6 +8,7 @@ import { bufferToString, bufferToArrayBuffer, buffersAreEqual } from './helpers/
 import { generateIdentity, generateKeyId, generatePreKeyBundle } from './helpers/signal'
 import UsernameGenerator from './modules/UsernameGenerator'
 import { PeerInviteMessage } from './protos/PeerInviteMessage'
+import { SignalCiphertext } from './protos/SignalCiphertext'
 
 declare var libsignal: ISignal
 declare var Peer: any
@@ -102,7 +103,8 @@ class ChatController {
     this.peer = new Peer(this.store.get('userId'))
     this.peer.on('connection', (conn: any) => {
       conn.on('data', (data: unknown) => {
-        console.log(`Received from ${conn.peer}: ${data}`)
+        console.log(`Received from ${conn.peer}:`, data)
+        this.processMessage(data as string)
       })
     })
   }
@@ -127,18 +129,34 @@ class ChatController {
     return new libsignal.SignalProtocolAddress(await this.getLocalRegistrationId(), await this.getLocalDeviceId())
   }
 
+  public async processMessage(b64: string): Promise<void> {
+    const bytes = new Uint8Array(ByteBuffer.wrap(b64, 'base64').toArrayBuffer())
+    const ciphertext = SignalCiphertext.decode(bytes)
+    const senderAddress = new libsignal.SignalProtocolAddress(ciphertext.SenderRegistrationId, ciphertext.SenderDeviceId)
+    const sessionCipher = new libsignal.SessionCipher(this.store, senderAddress)
+
+    if (ciphertext.Type === 3) {
+      const plaintext = await sessionCipher.decryptPreKeyWhisperMessage(ciphertext.Body, 'binary')
+      console.log(plaintext)
+      console.log(bufferToString(plaintext))
+    } else {
+      const plaintext = await sessionCipher.decryptWhisperMessage(ciphertext.Body, 'binary')
+      console.log(plaintext)
+      console.log(bufferToString(plaintext))
+    }
+  }
+
   public async startConversationFromInviteCode(inviteCode: string): Promise<void> {
     const bytes = new Uint8Array(ByteBuffer.wrap(inviteCode, 'base64').toArrayBuffer())
     const invite = PeerInviteMessage.decode(bytes)
-
-    console.log(invite)
 
     if (invite.PreKeyBundle === undefined) throw new Error('PreKey bundle is undefined')
     if (this.peer === undefined) throw new Error('peer is not set up')
 
     const toBuffer = (b: Uint8Array) => b.buffer.slice(b.byteOffset, b.byteLength + b.byteOffset)
 
-    const builder = new libsignal.SessionBuilder(this.store, await this.getLocalAddress())
+    const address = new libsignal.SignalProtocolAddress(invite.PreKeyBundle.RegistrationId, invite.PreKeyBundle.DeviceId)
+    const builder = new libsignal.SessionBuilder(this.store, address)
     await builder.processPreKey({
       identityKey: toBuffer(invite.PreKeyBundle.IdentityPublicKey),
       registrationId: invite.PreKeyBundle.RegistrationId,
@@ -153,11 +171,25 @@ class ChatController {
       }
     })
 
+    const message = bufferToArrayBuffer('test encrypted message')
+    const sessionCipher = new libsignal.SessionCipher(this.store, address)
+    const ciphertext = await sessionCipher.encrypt(message)
+    const proto = SignalCiphertext.encode({
+      Type: ciphertext.type,
+      Body: ciphertext.body as string, // use bufferToString?
+      RegistrationId: ciphertext.registrationId,
+      SenderRegistrationId: await this.getLocalRegistrationId(),
+      SenderDeviceId: await this.getLocalDeviceId()
+    })
+
+    const messageBytes = proto.finish()
+    const b64 = ByteBuffer.wrap(messageBytes).toString('base64')
+
     console.log(`Connecting to ${invite.UserId}...`)
     const conn = this.peer.connect(invite.UserId)
     conn.on('open', () => {
       console.log(`Connected to: ${conn.peer}`)
-      conn.send('hello!!!!!')
+      conn.send(b64)
     })
   }
 
