@@ -1,11 +1,13 @@
 import choo from 'choo'
 import html from 'choo/html'
 import ByteBuffer from 'bytebuffer'
-import protobuf from 'protobufjs'
-import { ISignal, ISignalPreKeyBundle, ISignalProtocolAddress, ISignalProtocolStore } from './interfaces'
+import { ulid } from 'ulid'
+import { ISignal, ISignalCiphertext, ISignalCiphertextType, ISignalPreKeyBundle, ISignalProtocolAddress, ISignalProtocolStore } from './interfaces'
 import InMemorySignalProtocolStore from './modules/InMemorySignalProtocolStore'
 import { bufferToString, bufferToArrayBuffer, buffersAreEqual } from './helpers/buffers'
 import { generateIdentity, generateKeyId, generatePreKeyBundle } from './helpers/signal'
+import UsernameGenerator from './modules/UsernameGenerator'
+import { PeerInviteMessage } from './protos/PeerInviteMessage'
 
 declare var libsignal: ISignal
 
@@ -70,7 +72,7 @@ const runExample = async () => {
   console.log(`> Bob to Alice: "${bufferToString(plaintext4)}"`)
 }
 
-class SignalController {
+class ChatController {
   constructor(private store: ISignalProtocolStore) {}
 
   public async install() {
@@ -83,6 +85,16 @@ class SignalController {
     if (deviceId === undefined) {
       this.store.put('deviceId', 1)
     }
+
+    const username = this.store.get('username')
+    if (username === undefined) {
+      this.store.put('username', UsernameGenerator.generate())
+    }
+
+    const userId = this.store.get('userId')
+    if (userId === undefined) {
+      this.store.put('userId', ulid())
+    }
   }
 
   public async getLocalRegistrationId(): Promise<number> {
@@ -93,42 +105,46 @@ class SignalController {
     return this.store.get('deviceId')
   }
 
+  public async getLocalUsername(): Promise<string> {
+    return this.store.get('username')
+  }
+
+  public async getLocalUserId(): Promise<string> {
+    return this.store.get('userId')
+  }
+
   public async getLocalAddress(): Promise<ISignalProtocolAddress> {
     return new libsignal.SignalProtocolAddress(await this.getLocalRegistrationId(), await this.getLocalDeviceId())
   }
 
   public async addInviteCode(inviteCode: string): Promise<void> {
-    const bytes = new Uint8Array(ByteBuffer.wrap(inviteCode, 'binary').toArrayBuffer())
-    const protobufRoot = await protobuf.load('assets/dist/types.proto')
-    const PreKeyBundleMessage = protobufRoot.lookupType('signalEventsDemo.PreKeyBundleMessage')
-    const bundle = PreKeyBundleMessage.decode(bytes)
+    const bytes = new Uint8Array(ByteBuffer.wrap(inviteCode, 'base64').toArrayBuffer())
+    const invite = PeerInviteMessage.decode(bytes)
+
+    console.log(invite)
 
     // do something
   }
 
   public async createInviteCode(): Promise<string> {
     const bundle = await this.createPreKeyBundle()
-    const protobufRoot = await protobuf.load('assets/dist/types.proto')
-    const PreKeyBundleMessage = protobufRoot.lookupType('signalEventsDemo.PreKeyBundleMessage')
+    const message = PeerInviteMessage.encode({
+      UserId: await this.getLocalUserId(),
+      Username: await this.getLocalUsername(),
+      PreKeyBundle: {
+        IdentityPublicKey: new Uint8Array(bundle.identityKey),
+        RegistrationId: bundle.registrationId,
+        DeviceId: await this.getLocalDeviceId(),
+        PreKeyId: bundle.preKey.keyId,
+        PreKeyPublicKey: new Uint8Array(bundle.preKey.publicKey),
+        SignedPreKeyId: bundle.signedPreKey.keyId,
+        SignedPreKeyPublicKey: new Uint8Array(bundle.signedPreKey.publicKey),
+        SignedPreKeySignature: new Uint8Array(bundle.signedPreKey.signature)
+      }
+    })
 
-    const payload = {
-      IdentityPubKey: new Uint8Array(bundle.identityKey),
-      RegistrationId: bundle.registrationId,
-      DeviceId: await this.getLocalDeviceId(),
-      PreKeyId: bundle.preKey.keyId,
-      PreKeyPublicKey: new Uint8Array(bundle.preKey.publicKey),
-      SignedPreKeyId: bundle.signedPreKey.keyId,
-      SignedPreKeyPublicKey: new Uint8Array(bundle.signedPreKey.publicKey),
-      SignedPreKeySignature: new Uint8Array(bundle.signedPreKey.signature)
-    }
-
-    const err = PreKeyBundleMessage.verify(payload)
-    if (err) throw new Error(err)
-
-    const message = PreKeyBundleMessage.create(payload)
-    const bytes = PreKeyBundleMessage.encode(message).finish()
-
-    return ByteBuffer.wrap(bytes).toString('binary')
+    const bytes = message.finish()
+    return ByteBuffer.wrap(bytes).toString('base64')
   }
 
   private async createPreKeyBundle(): Promise<ISignalPreKeyBundle> {
@@ -142,20 +158,22 @@ class SignalController {
 const app = new choo()
 
 app.use(async function SignalMiddleware(state, emitter) {
-  const signal = new SignalController(new InMemorySignalProtocolStore())
+  const chat = new ChatController(new InMemorySignalProtocolStore())
 
-  await signal.install()
+  await chat.install()
 
   state.installed = true
-  state.registrationId = await signal.getLocalRegistrationId()
-  state.deviceId = await signal.getLocalDeviceId()
-  state.address = await signal.getLocalAddress()
-  state.readyInviteCode = await signal.createInviteCode()
+  state.registrationId = await chat.getLocalRegistrationId()
+  state.deviceId = await chat.getLocalDeviceId()
+  state.address = await chat.getLocalAddress()
+  state.username = await chat.getLocalUsername()
+  state.userId = await chat.getLocalUserId()
+  state.readyInviteCode = await chat.createInviteCode()
 
-  await signal.addInviteCode(state.readyInviteCode)
+  await chat.addInviteCode(state.readyInviteCode)
 
   state.actions = {
-    handleInviteCode: (inviteCode: string) => signal.addInviteCode(inviteCode)
+    handleInviteCode: (inviteCode: string) => chat.addInviteCode(inviteCode)
   }
 
   emitter.emit('render')
@@ -179,14 +197,15 @@ app.route('/', (state) => {
   return html`
     <div>
       <h1>signal<em>ish</em></h1>
-      <span>local address is ${state.address.toString()}</span>
+      <p>logged in as <strong>~${state.username}</strong> (${state.userId})</p>
+      <p>local address is ${state.address.toString()}</p>
 
       <form onsubmit="${handleSubmit}">
         <h2>Either paste an invite code...</h2>
         <input type="text" name="inviteCode" />
 
         <h2>...or share yours</h2>
-        <pre><code>${state.readyInviteCode}</code></pre>
+        <textarea cols="40" rows="6">${state.readyInviteCode}</textarea>
       </form>
     </div>
   `

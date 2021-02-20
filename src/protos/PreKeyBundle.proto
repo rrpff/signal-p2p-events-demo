@@ -1,8 +1,7 @@
-package signalEventsDemo;
 syntax = "proto3";
 
-message PreKeyBundleMessage {
-  bytes IdentityPubKey = 1;
+message PreKeyBundle {
+  bytes IdentityPublicKey = 1;
   int32 RegistrationId = 2;
   int32 DeviceId = 3;
   int32 PreKeyId = 4;
