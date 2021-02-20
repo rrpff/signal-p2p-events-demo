@@ -37,7 +37,7 @@ export default class InMemorySignalProtocolStore implements ISignalProtocolStore
     return this.get('identityKey') as IKeyPair
   }
 
-  async getLocalRegistrationId(): Promise<string> {
+  async getLocalRegistrationId(): Promise<number> {
     return this.get('registrationId')
   }
 

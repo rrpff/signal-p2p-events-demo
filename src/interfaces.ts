@@ -10,7 +10,7 @@ export interface IKeyPair {
 
 export interface ISignalPreKeyBundle {
   identityKey: IPublicKey,
-  registrationId: string,
+  registrationId: number,
   preKey: {
     keyId: number,
     publicKey: IPublicKey
@@ -30,7 +30,7 @@ export enum ISignalCiphertextType {
 export interface ISignalCiphertext {
   type: ISignalCiphertextType
   body: ArrayBuffer
-  registrationId: string
+  registrationId: number
 }
 
 export interface ISignalSessionRecord {
@@ -38,7 +38,7 @@ export interface ISignalSessionRecord {
 }
 
 export interface ISignalProtocolAddress {
-  new (registrationId: string, deviceId: number): ISignalProtocolAddress
+  new (registrationId: number, deviceId: number): ISignalProtocolAddress
   getName(): string
   getDeviceId(): number
   fromString(encodedAddress: string): ISignalProtocolAddress
@@ -58,7 +58,7 @@ export interface ISignalSessionCipher {
 
 export interface ISignalKeyHelper {
   generateIdentityKeyPair(): Promise<IKeyPair>
-  generateRegistrationId(): Promise<string>
+  generateRegistrationId(): Promise<number>
   generatePreKey(preKeyId: number): Promise<{
     keyPair: IKeyPair
   }>
@@ -82,7 +82,7 @@ export interface ISignalProtocolStore {
   get<T>(key: string, defaultValue?: T): T
   remove(key: string): void
   getIdentityKeyPair(): Promise<IKeyPair>
-  getLocalRegistrationId(): Promise<string>
+  getLocalRegistrationId(): Promise<number>
   isTrustedIdentity(identifier: string, identityKey: IPublicKey, _direction: unknown): Promise<boolean>
   loadIdentityKey(identifier: string): Promise<IPublicKey>
   saveIdentity(identifier: string, identityKey: IPublicKey): Promise<boolean>

@@ -2,7 +2,7 @@
   "scripts": {
     "start": "http-server public",
     "test": "jest",
-    "build": "browserify src/index.ts -p [ tsify ] -o public/assets/dist/bundle.js",
+    "build": "cp src/types.proto public/assets/dist/types.proto; browserify src/index.ts -p [ tsify ] -o public/assets/dist/bundle.js",
     "watch": "watchify src/index.ts -p [ tsify ] -o public/assets/dist/bundle.js",
     "dev": "npm run build; concurrently \"npm run watch\" \"npm start\""
   },
@@ -23,6 +23,8 @@
     "watchify": "^4.0.0"
   },
   "dependencies": {
-    "bytebuffer": "^5.0.1"
+    "bytebuffer": "^5.0.1",
+    "choo": "^7.1.0",
+    "protobufjs": "^6.10.2"
   }
 }
