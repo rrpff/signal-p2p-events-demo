@@ -5,7 +5,7 @@ import { generateIdentity, generatePreKeyBundle } from './helpers/signal'
 
 declare var libsignal: ISignal
 
-(async () => {
+const runExample = async () => {
   // Alice installs the app
   const aliceStore = new InMemorySignalProtocolStore()
   const aliceRegistrationId = await generateIdentity(aliceStore)
@@ -64,4 +64,16 @@ declare var libsignal: ISignal
   const ciphertext4 = await bobSessionCipher.encrypt(bufferToArrayBuffer('you too!'))
   const plaintext4 = await aliceSessionCipher.decryptWhisperMessage(ciphertext4.body, 'binary')
   console.log(`> Bob to Alice: "${bufferToString(plaintext4)}"`)
-})()
+}
+
+const render = () => {
+  document.body.innerHTML = ''
+
+  const runExampleButton = document.createElement('button')
+  runExampleButton.innerText = 'Run Console Example'
+  runExampleButton.onclick = runExample
+  document.body.appendChild(runExampleButton)
+}
+
+// Kickoff
+render()
