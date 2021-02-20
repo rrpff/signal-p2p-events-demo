@@ -10,6 +10,7 @@ import UsernameGenerator from './modules/UsernameGenerator'
 import { PeerInviteMessage } from './protos/PeerInviteMessage'
 
 declare var libsignal: ISignal
+declare var Peer: any
 
 const runExample = async () => {
   // Alice installs the app
@@ -73,6 +74,8 @@ const runExample = async () => {
 }
 
 class ChatController {
+  private peer?: any
+
   constructor(private store: ISignalProtocolStore) {}
 
   public async install() {
@@ -93,8 +96,15 @@ class ChatController {
 
     const userId = this.store.get('userId')
     if (userId === undefined) {
-      this.store.put('userId', ulid())
+      this.store.put('userId', ulid().slice(0, 10))
     }
+
+    this.peer = new Peer(this.store.get('userId'))
+    this.peer.on('connection', (conn: any) => {
+      conn.on('data', (data: unknown) => {
+        console.log(`Received from ${conn.peer}: ${data}`)
+      })
+    })
   }
 
   public async getLocalRegistrationId(): Promise<number> {
@@ -117,18 +127,43 @@ class ChatController {
     return new libsignal.SignalProtocolAddress(await this.getLocalRegistrationId(), await this.getLocalDeviceId())
   }
 
-  public async addInviteCode(inviteCode: string): Promise<void> {
+  public async startConversationFromInviteCode(inviteCode: string): Promise<void> {
     const bytes = new Uint8Array(ByteBuffer.wrap(inviteCode, 'base64').toArrayBuffer())
     const invite = PeerInviteMessage.decode(bytes)
 
     console.log(invite)
 
-    // do something
+    if (invite.PreKeyBundle === undefined) throw new Error('PreKey bundle is undefined')
+    if (this.peer === undefined) throw new Error('peer is not set up')
+
+    const toBuffer = (b: Uint8Array) => b.buffer.slice(b.byteOffset, b.byteLength + b.byteOffset)
+
+    const builder = new libsignal.SessionBuilder(this.store, await this.getLocalAddress())
+    await builder.processPreKey({
+      identityKey: toBuffer(invite.PreKeyBundle.IdentityPublicKey),
+      registrationId: invite.PreKeyBundle.RegistrationId,
+      preKey: {
+        keyId: invite.PreKeyBundle.PreKeyId,
+        publicKey: toBuffer(invite.PreKeyBundle.PreKeyPublicKey)
+      },
+      signedPreKey: {
+        keyId: invite.PreKeyBundle.SignedPreKeyId,
+        publicKey: toBuffer(invite.PreKeyBundle.SignedPreKeyPublicKey),
+        signature: toBuffer(invite.PreKeyBundle.SignedPreKeySignature)
+      }
+    })
+
+    console.log(`Connecting to ${invite.UserId}...`)
+    const conn = this.peer.connect(invite.UserId)
+    conn.on('open', () => {
+      console.log(`Connected to: ${conn.peer}`)
+      conn.send('hello!!!!!')
+    })
   }
 
   public async createInviteCode(): Promise<string> {
     const bundle = await this.createPreKeyBundle()
-    const message = PeerInviteMessage.encode({
+    const payload = {
       UserId: await this.getLocalUserId(),
       Username: await this.getLocalUsername(),
       PreKeyBundle: {
@@ -141,9 +176,11 @@ class ChatController {
         SignedPreKeyPublicKey: new Uint8Array(bundle.signedPreKey.publicKey),
         SignedPreKeySignature: new Uint8Array(bundle.signedPreKey.signature)
       }
-    })
+    }
 
-    const bytes = message.finish()
+    console.log('payload', payload)
+
+    const bytes = PeerInviteMessage.encode(payload).finish()
     return ByteBuffer.wrap(bytes).toString('base64')
   }
 
@@ -170,10 +207,8 @@ app.use(async function SignalMiddleware(state, emitter) {
   state.userId = await chat.getLocalUserId()
   state.readyInviteCode = await chat.createInviteCode()
 
-  await chat.addInviteCode(state.readyInviteCode)
-
   state.actions = {
-    handleInviteCode: (inviteCode: string) => chat.addInviteCode(inviteCode)
+    handleInviteCode: (inviteCode: string) => chat.startConversationFromInviteCode(inviteCode)
   }
 
   emitter.emit('render')
