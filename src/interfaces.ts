@@ -97,3 +97,15 @@ export interface ISignalProtocolStore {
   removeSession(identifier: string): Promise<void>
   removeAllSessions(identifier: string): Promise<void>
 }
+
+export interface IUser {
+  identifier: string
+  registrationId: number
+  deviceId: number
+}
+
+export interface IUserInstaller<TUser> {
+  install(): Promise<void>
+  getLocalUser(): Promise<TUser>
+}
+
