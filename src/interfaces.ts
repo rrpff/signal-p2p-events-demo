@@ -115,3 +115,10 @@ export interface ISignator<TAddress, TCiphertext> {
   decrypt(address: TAddress, message: TCiphertext): Promise<string>
 }
 
+export interface IStore {
+  set<T>(key: string, value: T): void
+  get<T>(key: string, defaultValue?: T): T
+  append<T>(key: string, value: T): void
+  remove(key: string): void
+  subscribe<T>(key: string, handler: (value: T) => void): void
+}
