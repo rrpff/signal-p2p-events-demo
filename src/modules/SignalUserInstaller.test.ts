@@ -1,4 +1,4 @@
-import { ISignal, ISignalProtocolStore, IUser } from '../interfaces'
+import { IKeyPair, ISignal, ISignalProtocolStore } from '../interfaces'
 import InMemorySignalProtocolStore from './InMemorySignalProtocolStore'
 import SignalUserInstaller from './SignalUserInstaller'
 
@@ -21,7 +21,7 @@ describe('install', () => {
   })
 
   it('should store a new Signal registration id', async () => {
-    const registrationId = createUser().registrationId
+    const registrationId = (await createUser()).registrationId
     libsignal.KeyHelper.generateRegistrationId = async () => registrationId
 
     await subject.install()
@@ -34,18 +34,26 @@ describe('install', () => {
     expect(store.get('deviceId')).toEqual(0)
   })
 
+  it('should store a new identity key', async () => {
+    await subject.install()
+    expect(store.get<IKeyPair>('identityKey').pubKey).toBeInstanceOf(ArrayBuffer)
+    expect(store.get<IKeyPair>('identityKey').privKey).toBeInstanceOf(ArrayBuffer)
+  })
+
   describe('if already installed', () => {
     it('should not change', async () => {
-      const user = createUser()
+      const user = await createUser()
       store.put('userId', user.identifier)
       store.put('registrationId', user.registrationId)
       store.put('deviceId', user.deviceId)
+      store.put('identityKey', user.identityKey)
 
       await subject.install()
 
       expect(store.get('userId')).toEqual(user.identifier)
       expect(store.get('registrationId')).toEqual(user.registrationId)
       expect(store.get('deviceId')).toEqual(user.deviceId)
+      expect(store.get('identityKey')).toEqual(user.identityKey)
     })
   })
 })
@@ -63,8 +71,9 @@ describe('getLocalUser', () => {
 })
 
 const isUlid = (value: unknown) => typeof value === 'string' && value.length === 26
-const createUser = (): IUser => ({
+const createUser = async () => ({
   identifier: Math.random().toString(),
   registrationId: Math.floor(Math.random() * 100),
   deviceId: Math.floor(Math.random() * 100),
+  identityKey: await libsignal.KeyHelper.generateIdentityKeyPair()
 })

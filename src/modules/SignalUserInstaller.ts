@@ -15,6 +15,9 @@ export default class SignalUserInstaller implements IUserInstaller<IUser> {
 
     if (this.store.get('deviceId') === undefined)
       this.store.put('deviceId', 0)
+
+    if (this.store.get('identityKey') === undefined)
+      this.store.put('identityKey', await libsignal.KeyHelper.generateIdentityKeyPair())
   }
 
   async getLocalUser(): Promise<IUser> {
