@@ -32,8 +32,44 @@ export default class SignalSignator implements ISignator<ISignalProtocolAddress,
     await builder.processPreKey(preKeyBundle)
   }
 
+  // TODO: wrap a test around this, i'm feeling lazy and i'd already written it
+  public async createPreKeyBundle(): Promise<ISignalPreKeyBundle> {
+    const preKeyId = await this.generateKeyId()
+    const signedPreKeyId = await this.generateKeyId()
+
+    const identity = await this.store.getIdentityKeyPair()
+    const registrationId = await this.store.getLocalRegistrationId()
+    const preKey = await libsignal.KeyHelper.generatePreKey(preKeyId)
+    const signedPreKey = await libsignal.KeyHelper.generateSignedPreKey(identity, signedPreKeyId)
+
+    this.store.storePreKey(preKeyId, preKey.keyPair)
+    this.store.storeSignedPreKey(signedPreKeyId, signedPreKey.keyPair)
+
+    return {
+      identityKey: identity.pubKey,
+      registrationId: registrationId,
+      preKey: {
+        keyId: preKeyId,
+        publicKey: preKey.keyPair.pubKey
+      },
+      signedPreKey: {
+        keyId: signedPreKeyId,
+        publicKey: signedPreKey.keyPair.pubKey,
+        signature: signedPreKey.signature
+      }
+    }
+  }
+
   private async checkRegistration() {
     if (this.store.get('registrationId') === undefined && this.store.get('deviceId') === undefined)
       throw new Error('registrationId and deviceId are not stored')
+  }
+
+  // TODO: is this limit set correctly?
+  // TODO: how bad are collisions?
+  // See: https://crypto.stackexchange.com/questions/82113/what-is-keyid-in-signal-protocol-javascript-library
+  private async generateKeyId(): Promise<number> {
+    const limit = 2^24
+    return Math.floor(Math.random() * limit)
   }
 }

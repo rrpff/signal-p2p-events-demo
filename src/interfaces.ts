@@ -110,6 +110,7 @@ export interface IUserInstaller<TUser> {
 }
 
 export interface ISignator<TAddress, TCiphertext> {
+  createPreKeyBundle(): Promise<ISignalPreKeyBundle>
   createSession(address: ISignalProtocolAddress, preKeyBundle: ISignalPreKeyBundle): Promise<void>
   encrypt(address: TAddress, plaintext: ByteBufferCompatible): Promise<TCiphertext>
   decrypt(address: TAddress, message: TCiphertext): Promise<string>
