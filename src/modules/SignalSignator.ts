@@ -70,6 +70,6 @@ export default class SignalSignator implements ISignator<ISignalProtocolAddress,
   // See: https://crypto.stackexchange.com/questions/82113/what-is-keyid-in-signal-protocol-javascript-library
   private async generateKeyId(): Promise<number> {
     const limit = 2^24
-    return Math.floor(Math.random() * limit)
+    return Math.ceil(Math.random() * limit)
   }
 }
