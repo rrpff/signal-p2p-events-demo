@@ -19,6 +19,7 @@
     "web-vitals": "^1.1.0"
   },
   "devDependencies": {
+    "@emotion/jest": "^11.2.0",
     "@emotion/react": "^11.1.5",
     "@storybook/addon-actions": "^6.1.21",
     "@storybook/addon-essentials": "^6.1.21",
@@ -28,13 +29,19 @@
     "@storybook/react": "^6.1.21",
     "@trust/webcrypto": "^0.9.2",
     "@types/bytebuffer": "^5.0.42",
+    "@types/react-test-renderer": "^17.0.1",
+    "@types/seedrandom": "^2.4.28",
+    "globby": "^11.0.2",
     "jest-environment-jsdom": "^26.6.2",
+    "react-test-renderer": "^17.0.1",
+    "seedrandom": "^3.0.5",
     "ts-jest": "^26.5.2"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test -- --config jest.config.js",
+    "test-watch": "react-scripts test --watch -- --config jest.config.js",
     "eject": "react-scripts eject",
     "storybook": "start-storybook -p 6006 -s public",
     "build-storybook": "build-storybook -s public"

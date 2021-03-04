@@ -24,8 +24,9 @@ export const MessageList = ({ messages, styleFor }: IMessageListProps) => {
 
   return (
     <>
-      {groups.map(group =>
+      {groups.map((group, index) =>
         <MessageGroup
+          key={index}
           sender={group.sender}
           messages={group.messages}
           alignment={group.style.alignment as 'left' | 'right'}

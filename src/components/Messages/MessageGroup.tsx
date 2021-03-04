@@ -26,8 +26,8 @@ export const MessageGroup = ({ sender, messages, alignment, messageBackground, m
 
   const messageElements = (
     <div style={{ textAlign: alignment }}>
-      {messages.map(message =>
-        <Message message={{ username: sender.username, body: message.body }} background={messageBackground} colour={messageColour} />
+      {messages.map((message, index) =>
+        <Message key={index} message={{ username: sender.username, body: message.body }} background={messageBackground} colour={messageColour} />
       )}
 
       <span css={css`

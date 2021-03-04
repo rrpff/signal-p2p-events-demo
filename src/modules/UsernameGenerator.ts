@@ -1,4 +1,10 @@
+import { createRng, pick } from '../helpers/random'
+
+const rng = createRng()
+
 export default class UsernameGenerator {
+  static rng = createRng()
+
   // Words from: https://www.random-generator.org.uk/words/
   static WORDS = [
     "joystick", "disease", "country", "students", "awesome", "natter", "smashing", "chuckle", "unkind", "hedges",
@@ -23,12 +29,11 @@ export default class UsernameGenerator {
     "sunset"
   ]
 
-  static generate() {
+  static generate(customRng?: () => number) {
     const pickWords = (remainingWordsNeeded: number, chosenWords: string[] = []): string[] => {
       if (remainingWordsNeeded === 0) return chosenWords
 
-      const rand = Math.random()
-      const word = this.WORDS[Math.floor(rand * this.WORDS.length)]
+      const word = pick(customRng || rng, this.WORDS)
       if (chosenWords.includes(word)) return pickWords(remainingWordsNeeded, chosenWords)
 
       return pickWords(remainingWordsNeeded - 1, [...chosenWords, word])
