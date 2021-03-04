@@ -26907,7 +26907,7 @@
                       bb.limit = buffer.byteOffset + buffer.length;
                       bb.view = buffer.length > 0 ? new DataView(buffer.buffer) : null;
                   }
-              } else if (buffer instanceof ArrayBuffer) { // Reuse ArrayBuffer
+              } else if (buffer instanceof ArrayBuffer || Object.prototype.toString.call(buffer) === "[object ArrayBuffer]") { // Reuse ArrayBuffer
                   bb = new ByteBuffer(0, littleEndian, noAssert);
                   if (buffer.byteLength > 0) {
                       bb.buffer = buffer;
