@@ -1,9 +1,0 @@
-syntax = "proto3";
-
-message SignalCiphertext {
-  int32 Type = 1;
-  string Body = 2;
-  int32 RegistrationId = 3;
-  int32 SenderRegistrationId = 4;
-  int32 SenderDeviceId = 5;
-}
