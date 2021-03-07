@@ -18,13 +18,6 @@ export interface IEvent {
   [key: string]: any
 }
 
-export type IEventSubscriber = (event: IEvent) => void
-
-export interface IEventStream {
-  add(event: IEvent): void
-  stream(subscriber: IEventSubscriber): void
-}
-
 export interface ISerializer<TInput, TOutput> {
   serialize(message: TInput): TOutput
   deserialize(message: TOutput): TInput

@@ -6,8 +6,6 @@ import {
 } from '../../src/packages/signal-session/interfaces'
 import {
   IEvent,
-  IEventSubscriber,
-  IEventStream,
   ISerializer,
   IPeerToPeerCommunicator,
   IMessage,
@@ -16,20 +14,9 @@ import {
 import InMemorySignalProtocolStore from '../../src/packages/signal-session/InMemorySignalProtocolStore'
 import SignalSignator from '../../src/packages/signal-session/SignalSignator'
 import SignalUserInstaller from '../../src/packages/signal-session/SignalUserInstaller'
+import EventStream from '../../src/packages/event-stream/EventStream'
 
 declare var libsignal: ISignal
-
-class ExampleEventStream implements IEventStream {
-  private subscribers: Set<IEventSubscriber> = new Set()
-
-  add(event: IEvent): void {
-    this.subscribers.forEach(subscriber => subscriber(event))
-  }
-
-  stream(subscriber: IEventSubscriber): void {
-    this.subscribers.add(subscriber)
-  }
-}
 
 class ExamplePeerToPeerCommunicator implements IPeerToPeerCommunicator<ExamplePeerToPeerCommunicator, IEvent, { identifier: string }> {
   private subscribers: Set<(address: ExamplePeerToPeerCommunicator, message: IEvent) => void> = new Set()
@@ -192,15 +179,15 @@ class ExampleJsonEventSerializer implements ISerializer<IEvent, string> {
 }
 
 test('Streaming encrypted events peer to peer with Example implementations', () => {
-  const eventStreamBob = new ExampleEventStream()
+  const eventStreamBob = new EventStream<IEvent>()
   const serializerBob = new ExampleJsonEventSerializer()
   const communicatorBob = new ExamplePeerToPeerCommunicator(serializerBob)
 
-  const eventStreamAlice = new ExampleEventStream()
+  const eventStreamAlice = new EventStream<IEvent>()
   const serializerAlice = new ExampleJsonEventSerializer()
   const communicatorAlice = new ExamplePeerToPeerCommunicator(serializerAlice)
 
-  const eventStreamJamie = new ExampleEventStream()
+  const eventStreamJamie = new EventStream<IEvent>()
   const serializerJamie = new ExampleJsonEventSerializer()
   const communicatorJamie = new ExamplePeerToPeerCommunicator(serializerJamie)
 
@@ -211,18 +198,18 @@ test('Streaming encrypted events peer to peer with Example implementations', () 
   communicatorBob.connect(communicatorAlice)
   communicatorJamie.connect(communicatorAlice)
 
-  eventStreamBob.stream(event => communicatorBob.send(communicatorAlice, event))
-  eventStreamJamie.stream(event => communicatorJamie.send(communicatorAlice, event))
+  eventStreamBob.subscribe(event => communicatorBob.send(communicatorAlice, event))
+  eventStreamJamie.subscribe(event => communicatorJamie.send(communicatorAlice, event))
 
   communicatorAlice.stream((address, event) => {
     if (address === communicatorBob) {
-      eventStreamAlice.add(event)
+      eventStreamAlice.push(event)
     }
   })
 
-  eventStreamAlice.stream(spy)
-  eventStreamBob.add(eventBobToAlice)
-  eventStreamJamie.add(eventJamieToAlice)
+  eventStreamAlice.subscribe(spy)
+  eventStreamBob.push(eventBobToAlice)
+  eventStreamJamie.push(eventJamieToAlice)
 
   expect(spy).toHaveBeenCalledWith(eventBobToAlice)
   expect(spy).not.toHaveBeenCalledWith(eventJamieToAlice)
@@ -232,7 +219,7 @@ test('Streaming encrypted events peer to peer with Example Signal implementation
   const storeBob = new InMemorySignalProtocolStore()
   const installerBob = new SignalUserInstaller(storeBob)
   const signatorBob = new SignalSignator(storeBob)
-  const eventStreamBob = new ExampleEventStream()
+  const eventStreamBob = new EventStream<IEvent>()
   const serializerBob = new ExampleJsonEventSerializer()
   const communicatorBob = new ExampleSignalPeerToPeerCommunicator(serializerBob, installerBob, signatorBob)
   await communicatorBob.setup()
@@ -240,7 +227,7 @@ test('Streaming encrypted events peer to peer with Example Signal implementation
   const storeAlice = new InMemorySignalProtocolStore()
   const installerAlice = new SignalUserInstaller(storeAlice)
   const signatorAlice = new SignalSignator(storeAlice)
-  const eventStreamAlice = new ExampleEventStream()
+  const eventStreamAlice = new EventStream<IEvent>()
   const serializerAlice = new ExampleJsonEventSerializer()
   const communicatorAlice = new ExampleSignalPeerToPeerCommunicator(serializerAlice, installerAlice, signatorAlice)
   await communicatorAlice.setup()
@@ -248,7 +235,7 @@ test('Streaming encrypted events peer to peer with Example Signal implementation
   const storeJamie = new InMemorySignalProtocolStore()
   const installerJamie = new SignalUserInstaller(storeJamie)
   const signatorJamie = new SignalSignator(storeJamie)
-  const eventStreamJamie = new ExampleEventStream()
+  const eventStreamJamie = new EventStream<IEvent>()
   const serializerJamie = new ExampleJsonEventSerializer()
   const communicatorJamie = new ExampleSignalPeerToPeerCommunicator(serializerJamie, installerJamie, signatorJamie)
   await communicatorJamie.setup()
@@ -267,18 +254,18 @@ test('Streaming encrypted events peer to peer with Example Signal implementation
   await communicatorAlice.connect(addressBob)
   await communicatorAlice.connect(addressJamie)
 
-  eventStreamBob.stream(event => communicatorBob.send(addressAlice, event))
-  eventStreamJamie.stream(event => communicatorJamie.send(addressAlice, event))
+  eventStreamBob.subscribe(event => communicatorBob.send(addressAlice, event))
+  eventStreamJamie.subscribe(event => communicatorJamie.send(addressAlice, event))
 
   communicatorAlice.stream((address, event) => {
     if (address.toString() === addressBob.toString()) {
-      eventStreamAlice.add(event)
+      eventStreamAlice.push(event)
     }
   })
 
-  eventStreamAlice.stream(spy)
-  eventStreamBob.add(eventBobToAlice)
-  eventStreamJamie.add(eventJamieToAlice)
+  eventStreamAlice.subscribe(spy)
+  eventStreamBob.push(eventBobToAlice)
+  eventStreamJamie.push(eventJamieToAlice)
 
   await new Promise(resolve => setTimeout(resolve, 100))
 
@@ -290,7 +277,7 @@ test('Streaming encrypted events peer to peer with Example Signal implementation
   const storeBob = new InMemorySignalProtocolStore()
   const installerBob = new SignalUserInstaller(storeBob)
   const signatorBob = new SignalSignator(storeBob)
-  const eventStreamBob = new ExampleEventStream()
+  const eventStreamBob = new EventStream<IEvent>()
   const serializerBob = new ExampleJsonEventSerializer()
   const communicatorBob = new ExampleSignalPeerToPeerCommunicatorWithIdentifiers(storeBob, serializerBob, installerBob, signatorBob)
   await communicatorBob.setup()
@@ -298,7 +285,7 @@ test('Streaming encrypted events peer to peer with Example Signal implementation
   const storeAlice = new InMemorySignalProtocolStore()
   const installerAlice = new SignalUserInstaller(storeAlice)
   const signatorAlice = new SignalSignator(storeAlice)
-  const eventStreamAlice = new ExampleEventStream()
+  const eventStreamAlice = new EventStream<IEvent>()
   const serializerAlice = new ExampleJsonEventSerializer()
   const communicatorAlice = new ExampleSignalPeerToPeerCommunicatorWithIdentifiers(storeAlice, serializerAlice, installerAlice, signatorAlice)
   await communicatorAlice.setup()
@@ -306,7 +293,7 @@ test('Streaming encrypted events peer to peer with Example Signal implementation
   const storeJamie = new InMemorySignalProtocolStore()
   const installerJamie = new SignalUserInstaller(storeJamie)
   const signatorJamie = new SignalSignator(storeJamie)
-  const eventStreamJamie = new ExampleEventStream()
+  const eventStreamJamie = new EventStream<IEvent>()
   const serializerJamie = new ExampleJsonEventSerializer()
   const communicatorJamie = new ExampleSignalPeerToPeerCommunicatorWithIdentifiers(storeJamie, serializerJamie, installerJamie, signatorJamie)
   await communicatorJamie.setup()
@@ -324,18 +311,18 @@ test('Streaming encrypted events peer to peer with Example Signal implementation
   await communicatorAlice.connect(identifierBob)
   await communicatorAlice.connect(identifierJamie)
 
-  eventStreamBob.stream(event => communicatorBob.send(identifierAlice, event))
-  eventStreamJamie.stream(event => communicatorJamie.send(identifierAlice, event))
+  eventStreamBob.subscribe(event => communicatorBob.send(identifierAlice, event))
+  eventStreamJamie.subscribe(event => communicatorJamie.send(identifierAlice, event))
 
   communicatorAlice.stream((identifier, event) => {
     if (identifier === identifierBob) {
-      eventStreamAlice.add(event)
+      eventStreamAlice.push(event)
     }
   })
 
-  eventStreamAlice.stream(spy)
-  eventStreamBob.add(eventBobToAlice)
-  eventStreamJamie.add(eventJamieToAlice)
+  eventStreamAlice.subscribe(spy)
+  eventStreamBob.push(eventBobToAlice)
+  eventStreamJamie.push(eventJamieToAlice)
 
   await new Promise(resolve => setTimeout(resolve, 100))
 
