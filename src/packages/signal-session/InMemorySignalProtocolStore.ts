@@ -1,7 +1,7 @@
 // Adapted from: https://github.com/signalapp/libsignal-protocol-javascript/blob/master/test/InMemorySignalProtocolStore.js
 
-import { IKeyPair, IPublicKey, ISignal, ISignalProtocolStore, ISignalSessionRecord } from '../interfaces'
-import { bufferToString } from '../helpers/buffers'
+import { IKeyPair, IPublicKey, ISignal, ISignalProtocolStore, ISignalSessionRecord } from './interfaces'
+import { bufferToString } from './helpers/buffers'
 
 declare var libsignal: ISignal
 

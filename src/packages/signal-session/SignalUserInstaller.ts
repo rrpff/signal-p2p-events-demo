@@ -1,9 +1,9 @@
 import { ulid } from 'ulid'
-import { ISignal, ISignalProtocolStore, IUser, IUserInstaller } from "../interfaces";
+import { ISignal, ISignalProtocolStore, ISignalUser, ISignalUserInstaller } from "./interfaces"
 
 declare var libsignal: ISignal
 
-export default class SignalUserInstaller implements IUserInstaller<IUser> {
+export default class SignalUserInstaller implements ISignalUserInstaller<ISignalUser> {
   constructor(private store: ISignalProtocolStore) {}
 
   async install(): Promise<void> {
@@ -20,7 +20,7 @@ export default class SignalUserInstaller implements IUserInstaller<IUser> {
       this.store.put('identityKey', await libsignal.KeyHelper.generateIdentityKeyPair())
   }
 
-  async getLocalUser(): Promise<IUser> {
+  async getLocalUser(): Promise<ISignalUser> {
     return {
       identifier: this.store.get('userId'),
       registrationId: this.store.get('registrationId'),

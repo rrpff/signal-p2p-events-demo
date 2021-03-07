@@ -1,9 +1,9 @@
-import { bufferToArrayBuffer, bufferToString } from '../helpers/buffers'
-import { generateKeyId, generatePreKeyBundle } from '../helpers/signal'
-import { ISignalProtocolStore, ISignal, ISignalProtocolAddress, IKeyPair, ISignalPreKeyBundle } from '../interfaces'
+import { bufferToArrayBuffer, bufferToString } from './helpers/buffers'
+import { generateKeyId, generatePreKeyBundle } from './helpers/signal'
+import { ISignalProtocolStore, ISignal, ISignalProtocolAddress, IKeyPair, ISignalPreKeyBundle } from './interfaces'
 import InMemorySignalProtocolStore from './InMemorySignalProtocolStore'
 import SignalSignator from './SignalSignator'
-import UsernameGenerator from './UsernameGenerator'
+import UsernameGenerator from '../../modules/UsernameGenerator'
 
 declare var libsignal: ISignal
 
@@ -32,7 +32,7 @@ describe('when the device is unregistered', () => {
     const recipient = await registerTestUser()
     const recipientAddress = new libsignal.SignalProtocolAddress(recipient.registrationId, recipient.deviceId)
 
-    expect(subject.encrypt(recipientAddress, ''))
+    await expect(subject.encrypt(recipientAddress, ''))
       .rejects.toThrow('registrationId and deviceId are not stored')
   })
 })
@@ -41,7 +41,7 @@ describe('when a session has not been established with the recipient', () => {
   it('#encrypt should throw an error', async () => {
     const recipient = await registerTestUser()
 
-    expect(subject.encrypt(recipient.address, 'hey there'))
+    await expect(subject.encrypt(recipient.address, 'hey there'))
       .rejects.toThrow(`No record for ${recipient.address.toString()}`)
   })
 })

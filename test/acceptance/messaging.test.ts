@@ -2,7 +2,9 @@ import {
   ISignal,
   ISignalPreKeyBundle,
   ISignalProtocolAddress,
-  ISignalProtocolStore,
+  ISignalProtocolStore
+} from '../../src/packages/signal-session/interfaces'
+import {
   IEvent,
   IEventSubscriber,
   IEventStream,
@@ -11,9 +13,9 @@ import {
   IMessage,
   IUser
 } from '../../src/interfaces'
-import InMemorySignalProtocolStore from '../../src/modules/InMemorySignalProtocolStore'
-import SignalSignator from '../../src/modules/SignalSignator'
-import SignalUserInstaller from '../../src/modules/SignalUserInstaller'
+import InMemorySignalProtocolStore from '../../src/packages/signal-session/InMemorySignalProtocolStore'
+import SignalSignator from '../../src/packages/signal-session/SignalSignator'
+import SignalUserInstaller from '../../src/packages/signal-session/SignalUserInstaller'
 
 declare var libsignal: ISignal
 

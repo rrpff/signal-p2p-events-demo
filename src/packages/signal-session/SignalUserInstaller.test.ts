@@ -1,4 +1,4 @@
-import { IKeyPair, ISignal, ISignalProtocolStore } from '../interfaces'
+import { IKeyPair, ISignal, ISignalProtocolStore } from './interfaces'
 import InMemorySignalProtocolStore from './InMemorySignalProtocolStore'
 import SignalUserInstaller from './SignalUserInstaller'
 

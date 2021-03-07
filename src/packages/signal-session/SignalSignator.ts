@@ -1,9 +1,9 @@
-import { bufferToString } from '../helpers/buffers'
-import { ByteBufferCompatible, ISignal, ISignalCiphertext, ISignalPreKeyBundle, ISignalProtocolAddress, ISignalProtocolStore, ISignator } from '../interfaces'
+import { bufferToString } from './helpers/buffers'
+import { ByteBufferCompatible, ISignal, ISignalCiphertext, ISignalPreKeyBundle, ISignalProtocolAddress, ISignalProtocolStore, ISignalSignator } from './interfaces'
 
 declare var libsignal: ISignal
 
-export default class SignalSignator implements ISignator<ISignalProtocolAddress, ISignalCiphertext> {
+export default class SignalSignator implements ISignalSignator<ISignalProtocolAddress, ISignalCiphertext> {
   constructor(private store: ISignalProtocolStore) {}
 
   public async encrypt(address: ISignalProtocolAddress, plaintext: ByteBufferCompatible): Promise<ISignalCiphertext> {

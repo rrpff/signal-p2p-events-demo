@@ -1,7 +1,7 @@
-import { buffersAreEqual, bufferToArrayBuffer, bufferToString } from '../../src/helpers/buffers'
-import { generateIdentity, generatePreKeyBundle } from '../../src/helpers/signal'
-import { ISignal } from '../../src/interfaces'
-import InMemorySignalProtocolStore from '../../src/modules/InMemorySignalProtocolStore'
+import { buffersAreEqual, bufferToArrayBuffer, bufferToString } from '../../src/packages/signal-session/helpers/buffers'
+import { generateIdentity, generatePreKeyBundle } from '../../src/packages/signal-session/helpers/signal'
+import { ISignal } from '../../src/packages/signal-session/interfaces'
+import InMemorySignalProtocolStore from '../../src/packages/signal-session/InMemorySignalProtocolStore'
 
 declare var libsignal: ISignal
 
