@@ -1,0 +1,31 @@
+import WORDS from './words.json' // Words from: https://www.random-generator.org.uk/words/
+
+type Mapping<T> = {
+  [K in keyof T]: () => T[K]
+}
+
+const pick = (arr: any[]) => arr[Math.floor(Math.random() * arr.length)]
+
+export default class TypeFaker<T> {
+  static static = (value: any) => () => value
+  static word = () => () => pick(WORDS)
+  static letter = () => () => String.fromCharCode(97 + Math.floor(Math.random() * 26))
+  static integer = () => () => Math.floor(Math.random() * 10)
+  static ulid = () => () => {
+    let str = ''
+    while (str.length < 26) str += Math.random() > 0.5 ? TypeFaker.integer()() : TypeFaker.letter()()
+    return str.toUpperCase()
+  }
+
+  constructor(private mapping: Mapping<T>) {}
+
+  generate(overrides: Partial<T> = {}): T {
+    const keys = Object.keys(this.mapping) as (keyof T)[]
+    const generated = keys.reduce((acc, key) => {
+      const value = this.mapping[key]()
+      return { ...acc, [key]: value }
+    }, {} as T)
+
+    return { ...generated, ...overrides }
+  }
+}
