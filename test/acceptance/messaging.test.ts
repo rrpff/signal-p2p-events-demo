@@ -1,33 +1,21 @@
-import { ISignal, ISignalPreKeyBundle, ISignalProtocolAddress, ISignalProtocolStore } from "../../src/interfaces"
-import InMemorySignalProtocolStore from "../../src/modules/InMemorySignalProtocolStore"
-import SignalSignator from "../../src/modules/SignalSignator"
-import SignalUserInstaller from "../../src/modules/SignalUserInstaller"
+import {
+  ISignal,
+  ISignalPreKeyBundle,
+  ISignalProtocolAddress,
+  ISignalProtocolStore,
+  IEvent,
+  IEventSubscriber,
+  IEventStream,
+  ISerializer,
+  IPeerToPeerCommunicator,
+  IMessage,
+  IUser
+} from '../../src/interfaces'
+import InMemorySignalProtocolStore from '../../src/modules/InMemorySignalProtocolStore'
+import SignalSignator from '../../src/modules/SignalSignator'
+import SignalUserInstaller from '../../src/modules/SignalUserInstaller'
 
 declare var libsignal: ISignal
-
-interface IEvent {
-  id: string
-  type: string
-  [key: string]: any
-}
-
-type IEventSubscriber = (event: IEvent) => void
-
-interface IEventStream {
-  add(event: IEvent): void
-  stream(subscriber: IEventSubscriber): void
-}
-
-interface ISerializer<TInput, TOutput> {
-  serialize(message: TInput): TOutput
-  deserialize(message: TOutput): TInput
-}
-
-interface IPeerToPeerCommunicator<TAddress, TInput> {
-  connect(address: TAddress): void
-  send(address: TAddress, message: TInput): void
-  stream(handler: (address: TAddress, message: TInput) => void): void
-}
 
 class ExampleEventStream implements IEventStream {
   private subscribers: Set<IEventSubscriber> = new Set()
@@ -41,10 +29,12 @@ class ExampleEventStream implements IEventStream {
   }
 }
 
-class ExamplePeerToPeerCommunicator implements IPeerToPeerCommunicator<ExamplePeerToPeerCommunicator, IEvent> {
+class ExamplePeerToPeerCommunicator implements IPeerToPeerCommunicator<ExamplePeerToPeerCommunicator, IEvent, { identifier: string }> {
   private subscribers: Set<(address: ExamplePeerToPeerCommunicator, message: IEvent) => void> = new Set()
 
   constructor(private serializer: ISerializer<IEvent, string>) {}
+
+  async setup() { return { identifier: '123' } }
 
   connect(address: ExamplePeerToPeerCommunicator): Promise<void> {
     return Promise.resolve()
@@ -61,11 +51,15 @@ class ExamplePeerToPeerCommunicator implements IPeerToPeerCommunicator<ExamplePe
   exampleReceive(address: ExamplePeerToPeerCommunicator, message: string): void {
     this.subscribers.forEach(subscriber => subscriber(address, this.serializer.deserialize(message)))
   }
+
+  safetyNumberFor(address: ExamplePeerToPeerCommunicator): Promise<string> {
+    throw new Error('Method not implemented.')
+  }
 }
 
 const ADDRESS_LOOKUP = new Map<string, ExampleSignalPeerToPeerCommunicator>()
 
-class ExampleSignalPeerToPeerCommunicator implements IPeerToPeerCommunicator<ISignalProtocolAddress, IEvent> {
+class ExampleSignalPeerToPeerCommunicator implements IPeerToPeerCommunicator<ISignalProtocolAddress, IEvent, IUser> {
   private subscribers: Set<(address: ISignalProtocolAddress, message: IEvent) => void> = new Set()
   private address?: ISignalProtocolAddress
 
@@ -83,6 +77,8 @@ class ExampleSignalPeerToPeerCommunicator implements IPeerToPeerCommunicator<ISi
 
     ADDRESS_LOOKUP.set(address.toString(), this)
     this.address = address
+
+    return { identifier: '123', registrationId, deviceId }
   }
 
   async connect(address: ISignalProtocolAddress): Promise<void> {
@@ -112,11 +108,15 @@ class ExampleSignalPeerToPeerCommunicator implements IPeerToPeerCommunicator<ISi
   async exampleReceiveConnection(address: ISignalProtocolAddress, preKeyBundle: ISignalPreKeyBundle) {
     this.signator.createSession(address, preKeyBundle)
   }
+
+  safetyNumberFor(address: ISignalProtocolAddress): Promise<string> {
+    throw new Error('Method not implemented.')
+  }
 }
 
 const IDENTIFIER_LOOKUP = new Map<string, ExampleSignalPeerToPeerCommunicatorWithIdentifiers>()
 
-class ExampleSignalPeerToPeerCommunicatorWithIdentifiers implements IPeerToPeerCommunicator<string, IEvent> {
+class ExampleSignalPeerToPeerCommunicatorWithIdentifiers implements IPeerToPeerCommunicator<string, IEvent, IUser> {
   public identifier?: string
   private subscribers: Set<(identifier: string, message: IEvent) => void> = new Set()
   private address?: ISignalProtocolAddress
@@ -137,6 +137,8 @@ class ExampleSignalPeerToPeerCommunicatorWithIdentifiers implements IPeerToPeerC
     this.address = new libsignal.SignalProtocolAddress(registrationId, deviceId)
     this.identifier = identifier
     IDENTIFIER_LOOKUP.set(identifier, this)
+
+    return { identifier, registrationId, deviceId }
   }
 
   async connect(identifier: string): Promise<void> {
@@ -167,7 +169,7 @@ class ExampleSignalPeerToPeerCommunicatorWithIdentifiers implements IPeerToPeerC
     await this.signator.createSession(address, preKeyBundle)
   }
 
-  async safetyNumberFor(identifier: string): Promise<string[]> {
+  async safetyNumberFor(identifier: string): Promise<string> {
     const ourIdentityKey = (await this.store.getIdentityKeyPair()).pubKey
     const theirLibsignalIdentifier = this.addressBook.get(identifier)!.getName()
     const theirIdentityKey = await this.store.loadIdentityKey(theirLibsignalIdentifier)
@@ -339,23 +341,15 @@ test('Streaming encrypted events peer to peer with Example Signal implementation
   expect(spy).not.toHaveBeenCalledWith(eventJamieToAlice)
 })
 
-interface IMessage {
-  sender: string
-  recipient: string
-  body: string
-  timestamp: number
-}
-
 class Messenger {
   public identifier?: string
   public messages: IMessage[] = []
 
-  // TODO: consider normalising the #setup() method on this so we can use a generic interface type
-  constructor(private communicator: ExampleSignalPeerToPeerCommunicatorWithIdentifiers) {}
+  constructor(private communicator: IPeerToPeerCommunicator<string, IEvent, IUser>) {}
 
   async setup(): Promise<void> {
-    await this.communicator.setup()
-    this.identifier = this.communicator.identifier!
+    const { identifier } = await this.communicator.setup()
+    this.identifier = identifier
     this.communicator.stream((identifier, event) => {
       this.messages.push({ recipient: this.identifier!, sender: identifier, body: event.body, timestamp: event.timestamp })
     })
@@ -371,7 +365,7 @@ class Messenger {
     await this.communicator.send(identifier, event)
   }
 
-  async safetyNumberWith(identifier: string): Promise<string[]> {
+  async safetyNumberWith(identifier: string): Promise<string> {
     return await this.communicator.safetyNumberFor(identifier)
   }
 }
