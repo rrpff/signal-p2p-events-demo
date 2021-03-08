@@ -6,6 +6,10 @@ interface IAnimal {
   age?: number
 }
 
+interface ICat extends IAnimal {
+  whiskers: number
+}
+
 describe('TypeFaker', () => {
   it('should call the given faker function for each key specified', () => {
     const random = Math.random()
@@ -42,6 +46,18 @@ describe('TypeFaker', () => {
     const generated = faker.generate()
     expect(typeof generated.name).toEqual('string')
     expect(typeof generated.age).toEqual('number')
+  })
+
+  it('should support extending', () => {
+    const AnimalFaker = new TypeFaker<IAnimal>({
+      name: TypeFaker.word()
+    })
+
+    const CatFaker = AnimalFaker.extend<ICat>({
+      whiskers: TypeFaker.static(10)
+    })
+
+    expect(CatFaker.generate().whiskers).toEqual(10)
   })
 })
 

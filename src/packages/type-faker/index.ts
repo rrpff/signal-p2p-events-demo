@@ -1,5 +1,8 @@
 import WORDS from './words.json' // Words from: https://www.random-generator.org.uk/words/
 
+type WithoutIntersection<T, U> = Pick<T, Exclude<keyof T, keyof U>>
+type SubMapping<TBase, TSub> = Mapping<WithoutIntersection<TSub, TBase> & Partial<TBase>>
+type CombinedMapping<TBase, TSub> = Mapping<WithoutIntersection<TSub, TBase>> & Mapping<TBase>
 type Mapping<T> = {
   [K in keyof T]: () => T[K]
 }
@@ -19,6 +22,11 @@ export default class TypeFaker<T> {
   }
 
   constructor(private mapping: Mapping<T>) {}
+
+  extend<TExtension extends T>(subMapping: SubMapping<T, TExtension>): TypeFaker<TExtension> {
+    const combined: CombinedMapping<T, TExtension> = { ...this.mapping, ...subMapping }
+    return new TypeFaker<TExtension>(combined as Mapping<TExtension>)
+  }
 
   generate(overrides: Partial<T> = {}): T {
     const keys = Object.keys(this.mapping) as (keyof T)[]
