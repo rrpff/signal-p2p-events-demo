@@ -1,0 +1,7 @@
+syntax = "proto3";
+import "src/protos/PreKeyBundle.proto";
+
+message PeerInviteMessage {
+  string UserId = 1;
+  PreKeyBundle PreKeyBundle = 2;
+}

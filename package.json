@@ -34,13 +34,16 @@
     "@types/seedrandom": "^2.4.28",
     "globby": "^11.0.2",
     "jest-environment-jsdom": "^26.6.2",
+    "protoc-tools": "^3.11.3",
     "react-test-renderer": "^17.0.1",
     "seedrandom": "^3.0.5",
-    "ts-jest": "^26.5.2"
+    "ts-jest": "^26.5.2",
+    "ts-proto": "^1.72.0"
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build",
+    "build": "npm run build-protos && react-scripts build",
+    "build-protos": "protoc --plugin=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=. ./src/protos/*.proto",
     "test": "react-scripts test -- --config jest.config.js",
     "test-watch": "react-scripts test --watch -- --config jest.config.js",
     "eject": "react-scripts eject",

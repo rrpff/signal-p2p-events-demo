@@ -1,3 +1,17 @@
+import { IEventStream } from './packages/event-stream/interfaces'
+import { ISignalPreKeyBundle } from './packages/signal-session/interfaces'
+
+type PlainType<T> = T extends ISerializer<infer T1, unknown> ? T1 : never
+
+export interface ISerializer<TPlain, TSerialized> {
+  serialize(plain: TPlain): TSerialized
+  deserialize(serialized: TSerialized): TPlain
+}
+
+export interface IPeerToPeerEventStream<TSerializer, TAddress> extends IEventStream<PlainType<TSerializer>> {
+  sync(address: TAddress): void
+}
+
 export interface IUser {
   identifier: string
   registrationId: number
@@ -18,11 +32,6 @@ export interface IEvent {
   [key: string]: any
 }
 
-export interface ISerializer<TInput, TOutput> {
-  serialize(message: TInput): TOutput
-  deserialize(message: TOutput): TInput
-}
-
 export interface IPeerToPeerCommunicator<TAddress, TInput, TUser extends { identifier: string }> {
   setup(): Promise<TUser>
   connect(address: TAddress): void
@@ -36,4 +45,9 @@ export interface IMessage {
   recipient: string
   body: string
   timestamp: number
+}
+
+export interface IInvite {
+  user: IUser
+  preKeyBundle: ISignalPreKeyBundle
 }
