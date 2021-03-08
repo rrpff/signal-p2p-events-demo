@@ -31,10 +31,6 @@ export default class PeerjsEncryptedEventStream implements IPeerToPeerEventStrea
     private signator: ISignalSignator<ISignalProtocolAddress, ISignalCiphertext>
   ) {}
 
-  private isInviter = (remote: any) => this.store.get<string[]>('received-invites', []).includes(remote.peer)
-  private isInvitee = (remote: any) => this.store.get<string[]>('sent-invites', []).includes(remote.peer)
-  private isContact = (remote: any) => this.store.get<string[]>('contacts', []).includes(remote.peer)
-
   async setup() {
     await this.installer.install()
     this.user = await this.installer.getLocalUser()
