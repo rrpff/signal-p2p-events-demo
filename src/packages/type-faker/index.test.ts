@@ -1,9 +1,14 @@
 import TypeFaker from './'
 import WORDS from './words.json' // Words from: https://www.random-generator.org.uk/words/
 
+interface IAnimalToy {
+  type: string
+}
+
 interface IAnimal {
   name: string
   age?: number
+  toy?: IAnimalToy
 }
 
 interface ICat extends IAnimal {
@@ -58,6 +63,19 @@ describe('TypeFaker', () => {
     })
 
     expect(CatFaker.generate().whiskers).toEqual(10)
+  })
+
+  it('should support nesting', () => {
+    const ToyFaker = new TypeFaker<IAnimalToy>({
+      type: TypeFaker.static('bird on a string')
+    })
+
+    const AnimalFaker = new TypeFaker<IAnimal>({
+      name: TypeFaker.word(),
+      toy: ToyFaker
+    })
+
+    expect(AnimalFaker.generate().toy).toEqual({ type: 'bird on a string' })
   })
 })
 

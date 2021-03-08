@@ -4,7 +4,7 @@ type WithoutIntersection<T, U> = Pick<T, Exclude<keyof T, keyof U>>
 type SubMapping<TBase, TSub> = Mapping<WithoutIntersection<TSub, TBase> & Partial<TBase>>
 type CombinedMapping<TBase, TSub> = Mapping<WithoutIntersection<TSub, TBase>> & Mapping<TBase>
 type Mapping<T> = {
-  [K in keyof T]: () => T[K]
+  [K in keyof T]: TypeFaker<T[K]> | (() => T[K])
 }
 
 const pick = (arr: any[]) => arr[Math.floor(Math.random() * arr.length)]
@@ -31,8 +31,15 @@ export default class TypeFaker<T> {
   generate(overrides: Partial<T> = {}): T {
     const keys = Object.keys(this.mapping) as (keyof T)[]
     const generated = keys.reduce((acc, key) => {
-      const value = this.mapping[key]()
-      return { ...acc, [key]: value }
+      const creator = this.mapping[key]
+
+      if (creator instanceof TypeFaker) {
+        return { ...acc, [key]: creator.generate() }
+      } else if (creator instanceof Function) {
+        return { ...acc, [key]: (creator as Function)() }
+      } else {
+        throw new Error(`Cannot generate ${key}`)
+      }
     }, {} as T)
 
     return { ...generated, ...overrides }
