@@ -79,3 +79,10 @@ describe('TypeFaker.ulid', () => {
     expect(ulid).toMatch(/^[A-Z0-9]{26}$/)
   })
 })
+
+describe('TypeFaker.date', () => {
+  it('should return a date', () => {
+    const date = TypeFaker.date()()
+    expect(date).toBeInstanceOf(Date)
+  })
+})

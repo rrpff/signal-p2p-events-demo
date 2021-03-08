@@ -11,6 +11,7 @@ export default class TypeFaker<T> {
   static word = () => () => pick(WORDS)
   static letter = () => () => String.fromCharCode(97 + Math.floor(Math.random() * 26))
   static integer = () => () => Math.floor(Math.random() * 10)
+  static date = () => () => new Date(Math.floor(Math.random() * Date.now()))
   static ulid = () => () => {
     let str = ''
     while (str.length < 26) str += Math.random() > 0.5 ? TypeFaker.integer()() : TypeFaker.letter()()
