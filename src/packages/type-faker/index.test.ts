@@ -55,14 +55,14 @@ describe('TypeFaker', () => {
 
   it('should support extending', () => {
     const AnimalFaker = new TypeFaker<IAnimal>({
-      name: TypeFaker.word()
+      name: TypeFaker.static('kepler')
     })
 
     const CatFaker = AnimalFaker.extend<ICat>({
       whiskers: TypeFaker.static(10)
     })
 
-    expect(CatFaker.generate().whiskers).toEqual(10)
+    expect(CatFaker.generate()).toEqual({ name: 'kepler', whiskers: 10 })
   })
 
   it('should support nesting', () => {
