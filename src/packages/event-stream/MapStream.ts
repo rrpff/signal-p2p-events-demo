@@ -15,7 +15,7 @@ export default class MapStream<TEvent> implements IEventStream<TEvent> {
     const mapped = this.mapper(event)
 
     if (mapped instanceof Promise) {
-      this.subscribers.map(async subscriber => subscriber(await this.mapper(event)))
+      this.subscribers.map(async subscriber => subscriber(await mapped))
     } else {
       this.subscribers.map(subscriber => subscriber(mapped))
     }

@@ -20,7 +20,8 @@ test('maps events which pass through the stream', () => {
 test('supports async mappers', async () => {
   const event = Math.random()
   const stream = new EventStream<number>()
-  const map = new MapStream<number>(async event => event * 3)
+  const mapper = jest.fn(async event => event * 3)
+  const map = new MapStream<number>(mapper)
   const subscriber = jest.fn()
 
   map.subscribe(subscriber)
@@ -30,4 +31,5 @@ test('supports async mappers', async () => {
   await new Promise(resolve => process.nextTick(resolve))
 
   expect(subscriber).toHaveBeenCalledWith(event * 3)
+  expect(mapper).toHaveBeenCalledTimes(1)
 })
